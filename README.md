@@ -6,9 +6,10 @@
 This repo provides the model, code & data of our paper: [Temporal Knowledge Graph Forecasting Without Knowledge Using In-Context Learning](https://arxiv.org/abs/2305.10613) (EMNLP 2023).
 [[PDF]](https://arxiv.org/pdf/2305.10613.pdf)
 
+Authors: [Dong-Ho Lee&ast;][dlee], [Kian Ahrabian&ast;][kahrabian], [Woojeong Jin][wjin], [Fred Morstatter][fmorstatter], [Jay Pujara][jpujara].
+
 ## Overview
 **Temporal knowledge graph (TKG) forecasting** challenges models to predict future facts using knowledge of past facts. 
-
 Our work shows that **in-context learning (ICL) with large language models (LLMs)**  can solve TKG forecasting effectively.
 
 ## Requirements
@@ -58,10 +59,9 @@ If you make use of this code, please kindly cite the following paper:
 }
 ```
 
-<!-- [paper]: https://arxiv.org/abs/2305.10613
 [dlee]: https://www.danny-lee.info/
 [kahrabian]: https://scholar.google.com/citations?user=pwUdiCYAAAAJ&hl=en
 [wjin]: https://woojeongjin.github.io/
 [fmorstatter]: https://www.isi.edu/~fredmors/
-[jpujara]: https://www.jaypujara.org/ -->
+[jpujara]: https://www.jaypujara.org/
 
