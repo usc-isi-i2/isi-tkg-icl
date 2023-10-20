@@ -7,7 +7,9 @@ This repo provides the model, code & data of our paper: [Temporal Knowledge Grap
 [[PDF]](https://arxiv.org/pdf/2305.10613.pdf)
 
 ## Overview
-Temporal knowledge graph (TKG) forecasting benchmarks challenge models to predict future facts using knowledge of past facts. In this paper, we develop an approach to use in-context learning (ICL) with large language models (LLMs) for TKG forecasting. Our extensive evaluation compares diverse baselines, including both simple heuristics and state-of-the-art (SOTA) supervised models, against pre-trained LLMs across several popular benchmarks and experimental settings. We observe that naive LLMs perform on par with SOTA models, which employ carefully designed architectures and supervised training for the forecasting task, falling within the (-3.6%, +1.5%) Hits@1 margin relative to the median performance. To better understand the strengths of LLMs for forecasting, we explore different approaches for selecting historical facts, constructing prompts, controlling information propagation, and parsing outputs into a probability distribution. A surprising finding from our experiments is that LLM performance endures (±0.4% Hit@1) even when semantic information is removed by mapping entities/relations to arbitrary numbers, suggesting that prior semantic knowledge is unnecessary; rather, LLMs can leverage the symbolic patterns in the context to achieve such a strong performance. Our analysis also reveals that ICL enables LLMs to learn irregular patterns from the historical context, going beyond frequency and recency biases
+**Temporal knowledge graph (TKG) forecasting** challenges models to predict future facts using knowledge of past facts. 
+
+Our work shows that **in-context learning (ICL) with large language models (LLMs)**  can solve TKG forecasting effectively.
 
 ## Requirements
 
@@ -39,7 +41,8 @@ python run_hf.py \
   --history_len {history_len} \
   --history_type {entity|pair} \
   --history_direction {uni|bi} \
-  --label {--multi_step}
+  --label \
+  {--multi_step}
 ```
 
 ## Citation
