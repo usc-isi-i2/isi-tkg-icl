@@ -1,11 +1,11 @@
 import argparse
+from copy import deepcopy
+from dataclasses import dataclass
 import glob
 import json
 import os
-from copy import deepcopy
-from dataclasses import dataclass
 
-from utils import load_dictionary, load_quadruples_for_test, get_filename
+from utils import get_filename, load_dictionary, load_quadruples_for_test
 
 
 @dataclass
@@ -28,7 +28,7 @@ def read_jsonl(filenames: str):
 
 
 def load_data(args: argparse.Namespace):
-    filenames = get_filename(args, eval=True)
+    filenames = get_filename(args, is_eval=True)
 
     if len(glob.glob(filenames)) == 0:
         print("no input files found.")
@@ -37,12 +37,8 @@ def load_data(args: argparse.Namespace):
 
     entity_dictionary, relation_dictionary = None, None
     if args.text_style:
-        entity_dictionary = load_dictionary(
-            "data", os.path.join(args.dataset, "entity2id.txt")
-        )
-        relation_dictionary = load_dictionary(
-            "data", os.path.join(args.dataset, "relation2id.txt")
-        )
+        entity_dictionary = load_dictionary("data", os.path.join(args.dataset, "entity2id.txt"))
+        relation_dictionary = load_dictionary("data", os.path.join(args.dataset, "relation2id.txt"))
 
     output_data = read_jsonl(filenames)
     train_data = load_quadruples_for_test(
@@ -105,13 +101,11 @@ def filter_predictions(x, index, args):
     if args.eval_filter == "time-aware":
         for y in x["predictions"]:
             if x["direction"] == "head" and (
-                y in x["targets"]
-                or (y, x["relation"], x["entity"], x["timestamp"]) not in index
+                y in x["targets"] or (y, x["relation"], x["entity"], x["timestamp"]) not in index
             ):
                 filtered_predictions.append(y)
             elif x["direction"] == "tail" and (
-                y in x["targets"]
-                or (x["entity"], x["relation"], y, x["timestamp"]) not in index
+                y in x["targets"] or (x["entity"], x["relation"], y, x["timestamp"]) not in index
             ):
                 filtered_predictions.append(y)
             else:
@@ -127,13 +121,9 @@ def update_metric(x, filtered_predictions, hits_metric, empty_metric, args):
         empty_metric.total += 1
         if len(filtered_predictions) == 0:
             empty_metric.empty += 1
-        index = (
-            filtered_predictions.index(target) if target in filtered_predictions else -1
-        )
+        index = filtered_predictions.index(target) if target in filtered_predictions else -1
         if index >= 0:
-            _predictions = [
-                y for y in filtered_predictions[:index] if y not in x["targets"]
-            ]
+            _predictions = [y for y in filtered_predictions[:index] if y not in x["targets"]]
             rank = len(_predictions) + 1
             if args.verbose:
                 print(f"target: {target} --> rank: {rank}")

@@ -1,8 +1,8 @@
 import json
 from time import sleep
 
-import openai
 import numpy as np
+import openai
 
 with open("openai_config.json", encoding="utf-8") as f:
     config = json.load(f)
@@ -12,9 +12,7 @@ openai.api_key = config["openai_api_key"]
 
 def parse_results(result):
     raw_logprobs = result["choices"][0]["logprobs"]["top_logprobs"][0]
-    logprobs = [
-        (int(x.strip()), raw_logprobs[x]) for x in raw_logprobs if x.strip().isdecimal()
-    ]
+    logprobs = [(int(x.strip()), raw_logprobs[x]) for x in raw_logprobs if x.strip().isdecimal()]
     sorted_logprobs = sorted(logprobs, key=lambda tup: tup[1], reverse=True)
 
     probs = [x[1] for x in sorted_logprobs]
@@ -45,7 +43,7 @@ def predict(prompt, args):
                 logprobs=10,
             )
             got_result = True
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             sleep(3)
 
     parsed_results = parse_results(results)  # type: ignore
@@ -74,7 +72,7 @@ def predict_chatgpt(prompt, args):
                 stop=["]", "."],
             )
             got_result = True
-        except Exception as e:
+        except Exception:  # pylint: disable=broad-exception-caught
             sleep(3)
 
     parsed_results = parse_results_chatgpt(results)  # type: ignore

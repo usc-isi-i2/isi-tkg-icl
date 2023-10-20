@@ -1,13 +1,12 @@
 from eval_utils import (
+    EmptinessMetric,
     filter_predictions,
     get_index,
     load_data,
     print_metrics,
     update_metric,
-    EmptinessMetric,
 )
-from utils import get_args, HitsMetric
-
+from utils import HitsMetric, get_args
 
 if __name__ == "__main__":
     args = get_args()

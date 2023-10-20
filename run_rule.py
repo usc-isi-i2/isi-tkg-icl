@@ -2,6 +2,7 @@ import torch
 from tqdm import tqdm
 
 from utils import (
+    HitsMetric,
     adjust_top_k,
     get_args,
     get_filename,
@@ -10,9 +11,7 @@ from utils import (
     update_history,
     update_metric,
     write_results,
-    HitsMetric,
 )
-
 
 if __name__ == "__main__":
     args = get_args()
@@ -23,7 +22,7 @@ if __name__ == "__main__":
 
     metric = HitsMetric()
     filename = get_filename(args)
-    with torch.no_grad(), open(filename, "w") as writer, tqdm(test_data) as pbar:
+    with torch.no_grad(), open(filename, "w", encoding="utf-8") as writer, tqdm(test_data) as pbar:
         for i, (x, direction) in enumerate(pbar):
             if i % args.world_size != args.rank:
                 continue
@@ -35,9 +34,7 @@ if __name__ == "__main__":
             else:
                 raise ValueError
 
-            predictions, candidates = prepare_input(
-                x, search_space, args, return_prompt=False
-            )
+            predictions, candidates = prepare_input(x, search_space, args, return_prompt=False)
 
             update_history(x, search_space, predictions, candidates, args)
 

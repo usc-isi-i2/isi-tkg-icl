@@ -1,9 +1,10 @@
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, logging as tf_logging
 from tqdm import tqdm
+from transformers import AutoModelForCausalLM, AutoTokenizer, logging as tf_logging
 
 from model_utils import predict
 from utils import (
+    HitsMetric,
     adjust_top_k,
     get_args,
     get_filename,
@@ -12,25 +13,9 @@ from utils import (
     update_history,
     update_metric,
     write_results,
-    HitsMetric,
 )
 
 tf_logging.set_verbosity_error()
-
-
-def get_model(args):
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.model, revision=args.tokenizer_revision
-    )
-    tokenizer.pad_token_id = tokenizer.eos_token_id
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model,
-        torch_dtype=torch.float16 if args.fp16 else torch.float32,
-        device_map="auto",
-    )
-    model.eval()
-    print(f"model is loaded on device {model.device.type}")
-    return tokenizer, model
 
 
 if __name__ == "__main__":
@@ -40,11 +25,19 @@ if __name__ == "__main__":
 
     adjust_top_k(test_data, args)
 
-    tokenizer, model = get_model(args)
+    tokenizer = AutoTokenizer.from_pretrained(args.model, revision=args.tokenizer_revision)
+    tokenizer.pad_token_id = tokenizer.eos_token_id
+    model = AutoModelForCausalLM.from_pretrained(
+        args.model,
+        torch_dtype=torch.float16 if args.fp16 else torch.float32,
+        device_map="auto",
+    )
+    model.eval()
+    print(f"model is loaded on device {model.device.type}")
 
     metric = HitsMetric()
     filename = get_filename(args)
-    with torch.no_grad(), open(filename, "w") as writer, tqdm(test_data) as pbar:
+    with torch.no_grad(), open(filename, "w", encoding="utf-8") as writer, tqdm(test_data) as pbar:
         for i, (x, direction) in enumerate(pbar):
             if i % args.world_size != args.rank:
                 continue
@@ -56,9 +49,9 @@ if __name__ == "__main__":
             else:
                 raise ValueError
 
-            input, candidates = prepare_input(x, search_space, args, return_prompt=True)
+            model_input, candidates = prepare_input(x, search_space, args, return_prompt=True)
 
-            predictions = predict(tokenizer, model, input, args)
+            predictions = predict(tokenizer, model, model_input, args)
 
             update_history(x, search_space, predictions, candidates, args)
 

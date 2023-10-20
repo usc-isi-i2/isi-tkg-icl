@@ -1,10 +1,9 @@
 import argparse
+from dataclasses import dataclass
 import json
 import os
 import random
-from dataclasses import dataclass
-from typing import Any, Dict, Optional, List
-
+from typing import Any, Dict, List, Optional
 
 MAX_HITS = 10
 
@@ -12,24 +11,24 @@ MAX_HITS = 10
 @dataclass
 class HitsMetric:
     total: int = 0
-    h1: int = 0
-    h3: int = 0
-    h10: int = 0
+    hit1: int = 0
+    hit3: int = 0
+    hit10: int = 0
 
     def update(self, rank):
         if rank <= 1:
-            self.h1 += 1
+            self.hit1 += 1
         if rank <= 3:
-            self.h3 += 1
+            self.hit3 += 1
         if rank <= 10:
-            self.h10 += 1
+            self.hit10 += 1
 
     def dump(self):
         return {
             "total": self.total,
-            "h1": self.h1 / self.total,
-            "h3": self.h3 / self.total,
-            "h10": self.h10 / self.total,
+            "hit1": self.hit1 / self.total,
+            "hit3": self.hit3 / self.total,
+            "hit10": self.hit10 / self.total,
         }
 
 
@@ -55,28 +54,20 @@ def get_args():
     parser.add_argument("--history_len", default=0, type=int)  # length of history
     parser.add_argument("--history_top_k", default=1, type=int)  # length of targets from history
     # Prompt Construction
-    parser.add_argument(
-        "--label", default=False, action="store_true"
-    )  # express prompt with label
+    parser.add_argument("--label", default=False, action="store_true")  # express prompt with label
     parser.add_argument(
         "--text_style", default=False, action="store_true"
     )  # express prompt in text
     parser.add_argument(
         "--no_entity", default=False, action="store_true"
     )  # express prompt without entity
-    parser.add_argument(
-        "--sys_instruction", default="", type=str
-    )  # system instcution for ChatGPT
+    parser.add_argument("--sys_instruction", default="", type=str)  # system instcution for ChatGPT
     parser.add_argument(
         "--no_time", default=False, action="store_true"
     )  # express prompt without time
-    parser.add_argument(
-        "--shuffle_history", default=False, action="store_true"
-    )  # shuffle history
+    parser.add_argument("--shuffle_history", default=False, action="store_true")  # shuffle history
     # Hyperparameter
-    parser.add_argument(
-        "--top_k", default=100, type=int
-    )  # number of predictions to store
+    parser.add_argument("--top_k", default=100, type=int)  # number of predictions to store
     parser.add_argument(
         "--dec_cand", default=5, type=int
     )  # number of candidates to decode at each step
@@ -89,9 +80,7 @@ def get_args():
     parser.add_argument(
         "--fp16", default=False, action="store_true"
     )  # use float16 instead of float32
-    parser.add_argument(
-        "--verbose", default=False, action="store_true"
-    )  # print extra information
+    parser.add_argument("--verbose", default=False, action="store_true")  # print extra information
     # Evaluation
     parser.add_argument(
         "--eval_filter",
@@ -107,9 +96,9 @@ def get_args():
 
 
 # Read entity2id, relation2id
-def load_dictionary(inPath: str, fileName: str) -> Dict[int, str]:
+def load_dictionary(in_path: str, file_name: str) -> Dict[int, str]:
     _dict = {}
-    with open(os.path.join(inPath, fileName), "r") as fr:
+    with open(os.path.join(in_path, file_name), "r", encoding="utf-8") as fr:
         for line in fr:
             line_split = line.split("\t")
             node = line_split[0]
@@ -121,15 +110,15 @@ def load_dictionary(inPath: str, fileName: str) -> Dict[int, str]:
 
 # Read train, valid data to construct search space
 def load_quadruples(
-    searchDictionary: Dict[Any, Dict[Any, Dict[Any, List[Any]]]],
-    inPath: str,
-    fileName: str,
+    search_dictionary: Dict[Any, Dict[Any, Dict[Any, List[Any]]]],
+    in_path: str,
+    file_name: str,
     entity_dictionary: Optional[Dict[int, str]] = None,
     relation_dictionary: Optional[Dict[int, str]] = None,
     query: str = "head",
 ):
     discard_line, total_line = 0, 0
-    with open(os.path.join(inPath, fileName), "r") as fr:
+    with open(os.path.join(in_path, file_name), "r", encoding="utf-8") as fr:
         for line in fr:
             total_line += 1
             line_split = line.split()
@@ -153,34 +142,34 @@ def load_quadruples(
             time = int(line_split[3])
 
             if query == "head":
-                if head not in searchDictionary:
-                    searchDictionary[head] = {}
-                if time not in searchDictionary[head]:
-                    searchDictionary[head][time] = {}
-                if rel not in searchDictionary[head][time]:
-                    searchDictionary[head][time][rel] = []
-                searchDictionary[head][time][rel].append(tail)
+                if head not in search_dictionary:
+                    search_dictionary[head] = {}
+                if time not in search_dictionary[head]:
+                    search_dictionary[head][time] = {}
+                if rel not in search_dictionary[head][time]:
+                    search_dictionary[head][time][rel] = []
+                search_dictionary[head][time][rel].append(tail)
             elif query == "tail":
-                if tail not in searchDictionary:
-                    searchDictionary[tail] = {}
-                if time not in searchDictionary[tail]:
-                    searchDictionary[tail][time] = {}
-                if rel not in searchDictionary[tail][time]:
-                    searchDictionary[tail][time][rel] = []
-                searchDictionary[tail][time][rel].append(head)
+                if tail not in search_dictionary:
+                    search_dictionary[tail] = {}
+                if time not in search_dictionary[tail]:
+                    search_dictionary[tail][time] = {}
+                if rel not in search_dictionary[tail][time]:
+                    search_dictionary[tail][time][rel] = []
+                search_dictionary[tail][time][rel].append(head)
 
     print(f"# line discarded due to index issue: {discard_line} / {total_line}")
 
 
 # Read test data to inferencee
 def load_quadruples_for_test(
-    inPath: str,
-    fileName: str,
+    in_path: str,
+    file_name: str,
     entity_dictionary: Optional[Dict[int, str]] = None,
     relation_dictionary: Optional[Dict[int, str]] = None,
 ) -> List[List[Any]]:
     test_instances = []
-    with open(os.path.join(inPath, fileName), "r") as fr:
+    with open(os.path.join(in_path, file_name), "r", encoding="utf-8") as fr:
         for line in fr:
             line_split = line.split()
             if entity_dictionary and relation_dictionary:
@@ -218,14 +207,8 @@ def format_data(data):
 
     formatted_data = list(
         sorted(
-            [
-                ([k[0], k[1], list(set(v)), k[2]], "tail")
-                for k, v in tail_prediction.items()
-            ]
-            + [
-                ([k[0], k[1], list(set(v)), k[2]], "head")
-                for k, v in head_prediction.items()
-            ],
+            [([k[0], k[1], list(set(v)), k[2]], "tail") for k, v in tail_prediction.items()]
+            + [([k[0], k[1], list(set(v)), k[2]], "head") for k, v in head_prediction.items()],
             key=lambda x: x[0][3],
         )
     )
@@ -235,12 +218,8 @@ def format_data(data):
 def load_data(args: argparse.Namespace):
     entity_dictionary, relation_dictionary = None, None
     if args.text_style:
-        entity_dictionary = load_dictionary(
-            "data", os.path.join(args.dataset, "entity2id.txt")
-        )
-        relation_dictionary = load_dictionary(
-            "data", os.path.join(args.dataset, "relation2id.txt")
-        )
+        entity_dictionary = load_dictionary("data", os.path.join(args.dataset, "entity2id.txt"))
+        relation_dictionary = load_dictionary("data", os.path.join(args.dataset, "relation2id.txt"))
 
     head_search_space = {}
     load_quadruples(
@@ -296,13 +275,13 @@ def load_data(args: argparse.Namespace):
 
 def adjust_top_k(test_data, args):
     max_targets_len = max([len(x[0][2]) for x in test_data])
-    args.top_k = max(max(args.top_k, MAX_HITS), max_targets_len + MAX_HITS)
+    args.top_k = max(args.top_k, MAX_HITS, max_targets_len + MAX_HITS)
     if args.verbose:
         print(f"max targets len: {max_targets_len}")
         print(f"adjusted top k: {args.top_k}")
 
 
-def get_filename(args: argparse.Namespace, eval: bool = False):
+def get_filename(args: argparse.Namespace, is_eval: bool = False):
     model_name = args.model.split("/")[-1]
     filename_args = "_".join(
         [
@@ -317,8 +296,8 @@ def get_filename(args: argparse.Namespace, eval: bool = False):
             f"label_{args.label}",
             f"text_style_{args.text_style}",
             f"no_entity_{args.no_entity}",
-            f'world_size_{"*" if eval else args.world_size}',
-            f'rank_{"*" if eval else args.rank}',
+            f'world_size_{"*" if is_eval else args.world_size}',
+            f'rank_{"*" if is_eval else args.rank}',
         ]
     )
     filename = f"outputs/{filename_args}.jsonl"
@@ -338,9 +317,7 @@ def construct_history_by_search(
         search_graph[entity] = search_space[entity]
     elif history_type == "pair":
         search_graph[entity] = {
-            k: {relation: v[relation]}
-            for k, v in search_space[entity].items()
-            if relation in v
+            k: {relation: v[relation]} for k, v in search_space[entity].items() if relation in v
         }
 
     return search_graph
@@ -385,7 +362,7 @@ def format_history(
     if (args.label or args.no_entity) and args.model not in ["recency", "frequency"]:
         candidates = {v: k for k, v in candidates_mapping.items()}  # label --> entity
     else:
-        candidates = {k: k for k in candidates_mapping.keys()}  # entity --> entity
+        candidates = {k: k for k, _ in candidates_mapping.items()}  # entity --> entity
 
     if return_prompt:
         prompt = ""
@@ -399,9 +376,7 @@ def format_history(
             if args.no_entity:
                 prompt += f"[{entity},{relation},{candidates_mapping[target]}]\n"
             elif args.label:
-                prompt += (
-                    f"[{entity},{relation},{candidates_mapping[target]}.{target}]\n"
-                )
+                prompt += f"[{entity},{relation},{candidates_mapping[target]}.{target}]\n"
             else:
                 prompt += f"[{entity},{relation},{target}]\n"
         if not args.no_time:
@@ -421,7 +396,7 @@ def prepare_input(x, entity_search_space, args, return_prompt: bool = True):
         relation=relation,
         history_type=args.history_type,
     )
-    input, candidates = format_history(
+    history_input, candidates = format_history(
         entity_history,
         args.history_len,
         [time, entity, relation],
@@ -429,7 +404,7 @@ def prepare_input(x, entity_search_space, args, return_prompt: bool = True):
         return_prompt=return_prompt,
     )
     if args.verbose:
-        print(f"input:\n{input}\ncandidates:\n{candidates}")
+        print(f"input:\n{history_input}\ncandidates:\n{candidates}")
 
     if entity not in entity_search_space:
         entity_search_space[entity] = {}
@@ -438,7 +413,7 @@ def prepare_input(x, entity_search_space, args, return_prompt: bool = True):
     if relation not in entity_search_space[entity][time]:
         entity_search_space[entity][time][relation] = []
 
-    return input, candidates
+    return history_input, candidates
 
 
 def update_history(x, entity_search_space, predictions, candidates, args):
@@ -448,9 +423,7 @@ def update_history(x, entity_search_space, predictions, candidates, args):
             f"search space:\n{entity},{relation},{time} --> {entity_search_space[entity][time][relation]}"
         )
     if args.multi_step:
-        filtered_predictions = [
-            candidates[x[0]] for x in predictions if x[0] in candidates
-        ]
+        filtered_predictions = [candidates[x[0]] for x in predictions if x[0] in candidates]
         targets = filtered_predictions[: args.history_top_k]
     entity_search_space[entity][time][relation] += targets
     if args.verbose:
@@ -483,11 +456,7 @@ def update_metric(example, metric, args):
         print(f'predictions: {example["predictions"]}')
     for target in example["targets"]:
         metric.total += 1
-        index = (
-            example["predictions"].index(target)
-            if target in example["predictions"]
-            else -1
-        )
+        index = example["predictions"].index(target) if target in example["predictions"] else -1
         if index >= 0:
             _predictions = [
                 x for x in example["predictions"][:index] if x not in example["targets"]
