@@ -1,0 +1,5 @@
+torch
+numpy
+tqdm
+transformers
+openai
