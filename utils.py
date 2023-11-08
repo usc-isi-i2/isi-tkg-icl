@@ -37,7 +37,7 @@ def get_args():
     parser.add_argument("--model", default="gpt2", type=str)
     parser.add_argument(
         "--dataset",
-        choices=["GDELT", "ICEWS14", "ICEWS18", "WIKI", "YAGO", "acled", "acled_loc"],
+        choices=["ICEWS14", "ICEWS18", "WIKI", "YAGO"],
         default="ICEWS18",
         type=str,
     )
